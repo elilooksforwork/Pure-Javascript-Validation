@@ -177,17 +177,20 @@
     }
     function postData(obj)
     {
-        var ajax = new XMLHttpRequest();
-            ajax.onreadystatechange = function()
+        var $ajax = new XMLHttpRequest();
+            $ajax.onreadystatechange = function()
             {
-                if(ajax.readyState == 4 && ajax.status == 200)
-                {
-                    alert(ajax.responseText);
+                if ($ajax.readyState === 4) {
+                    if ($ajax.status == 200) {
+                        alert($ajax.responseText);
+                    } else {
+                        alert($ajax.statusText + "\r\n" + $ajax.response);
+                    }
                 }
             }
-            ajax.open("post", "http://localhost/CUT/TestValidatePost.php"); 
-            ajax.setRequestHeader('Content-Type', 'application/json');
-            ajax.send(JSON.stringify(obj));
+            $ajax.open("post", "http://localhost/CUT/TestValidatePost.php"); 
+            $ajax.setRequestHeader('Content-Type', 'application/json');
+            $ajax.send(JSON.stringify(obj));
     }
 </script>
 </head>
