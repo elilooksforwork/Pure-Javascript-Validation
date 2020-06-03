@@ -1,0 +1,251 @@
+﻿<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<style>
+    .error {
+        background-image: url('img/alert.gif');
+        background-repeat: no-repeat;
+        /*background-attachment: fixed;*/
+        background-position: right;
+    }
+</style>
+<script>
+    var ctrls = [];
+	class __control {
+		constructor(element) {
+            if (element) {
+                this.$element   = element;
+			    this.$tagName   = element.tagName;
+                this.$type      = element.getAttribute("type");
+                if (element.tagName == "TEXTAREA" || element.tagName == "SELECT")
+                    this.$type = "text";
+                this.$id        = (element.name != "" ? element.name : element.id);
+                this.$required  = (element.getAttribute("required") != null ? 1 : 0);
+                this.$minlength = (element.getAttribute("minlength") != null ? parseInt(element.getAttribute("minlength")): 0);
+                this.$min       = element.getAttribute("min");
+			    this.$max       = element.getAttribute("max");
+            }
+		}
+        toString() {
+            return "Element is a " + this.$tagName + " and is " + this.$required + " " + this.$max;
+        }
+        validate() {
+            switch (this.$type) {
+                case "number":
+                case "text":
+                {
+                    if (this.$required == 1 && this.$element.value == "")
+                        return false;
+                    if (this.$minlength > 0 && (this.$element.value.length < this.$minlength))
+                        return false;
+                }
+                break;
+                case "date": {
+                    if (this.$required == 1 && this.$element.value == "")
+                        return false;
+                    if (this.$required == 1 && !isDate(this.$element.value))
+                        return false;
+                    if (isDate(this.$min)) {
+                        if (this.$element.value < this.$min)
+                            return false;
+                    }
+                }
+                break;
+                case "radio": {
+                    var $arrRadio = document.getElementsByName(this.$element.name);
+                    if ($arrRadio) {
+                        for (var j = 0; j < $arrRadio.length; j++) {
+                            if ($arrRadio[j].checked) {
+                                return true;
+                            }
+                        }
+                    }
+                    alert("Please Select an option ");
+                }
+                break;
+            }
+            return true;
+        }
+        value() {
+            switch (this.$type) {
+                case "date": 
+                case "number":
+                case "text":
+                   return "\"" + this.$id + "\" : \"" + escape(this.$element.value) + "\"";
+                break;
+                case "radio": {
+                    var $arrRadio = document.getElementsByName(this.$element.name);
+                    var $value = "";    
+                    if ($arrRadio) {
+                        for (var j = 0; j < $arrRadio.length; j++) {
+                            if ($arrRadio[j].checked) {
+                                $value = $arrRadio[j].value;
+                                break;
+                            }
+                        }
+                    }
+                    return "\"" + this.$id + "\" : \"" + $value + "\"";
+                }
+                break;
+            }
+            return "\"" + this.$id + "\" : \"\"";
+        }
+	}
+    function getJSONString() {
+        var start   = "{";
+        var end     = "}";
+        var json    = "";
+
+    }
+    function keydownIntCheck(e, ctrl) 
+    {
+	    if(!e)
+		    e = window.event;
+        if (((e.keyCode >= 96 && e.keyCode <= 105) || (e.keyCode >= 48 && e.keyCode <= 57)) && e.keyCode != 8)
+		    return true;
+	    else if (e.keyCode != 8 && e.keyCode != 9 && e.keyCode != 37 && e.keyCode != 39 && e.keyCode != 110 && e.keyCode != 111)
+		    e.preventDefault();
+    }
+    function keydownRealCheck(e,ctrl) 
+    {
+	    if(!e)
+		    e = window.event;
+	    if(((e.keyCode >= 96 && e.keyCode <= 105) ||  (e.keyCode >= 48 && e.keyCode <= 57)) && e.keyCode != 8) 
+		    return true;
+	    else if (e.keyCode != 8 && e.keyCode != 9 && e.keyCode != 37 && e.keyCode != 39 && e.keyCode != 110 && e.keyCode != 111)
+            e.preventDefault();
+	    //CHECK MULTIPLE PERIODS
+	    else if(e.keyCode == 110)
+	    {
+		    if(ctrl.value)
+		    {
+			    if(ctrl.value.indexOf(".") != -1)
+                    e.preventDefault();
+		    }
+	    }
+    }
+    function isDate(dtStr) {
+        //yyyy-mm-dd hh:mm:ss
+        var regex = /(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})\s*(\d{0,2}):?(\d{0,2}):?(\d{0,2})/;
+        var matches = regex.exec(dtStr);
+        if (matches) {
+            //alert(matches[1] + " " + matches[2] + " " + matches[3])
+            var date = new Date( (+matches[1]), (+matches[2])-1, (+matches[3]), (+matches[4]), (+matches[5]), (+matches[6]) );
+            if ( ( date.getDate() == matches[3] ) && ( date.getMonth() == matches[2]-1 ) && ( date.getFullYear() == matches[1] ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+    function validateForm(ev) {
+        ev.preventDefault();
+        var validForm = true;
+        var json    = "";
+        try {
+            var iMax = ctrls.length;
+            for (var i = 0; i < iMax; i++) {
+                var $elem = ctrls[i];
+                $elem.$element.setAttribute("class", "");
+                if ($elem.validate() == false) {
+                    $elem.$element.setAttribute("class", "error");
+                    validForm = false;
+                    //alert($elem.$element.value + " " + $elem.$type + " " + $elem.$required + " " + $elem.$minlength);
+                }
+                json += $elem.value() + (i < (iMax - 1) ? "," : "");
+
+            }
+            if (validForm) {
+                var start   = "{";
+                var end = "}";
+                var jobj = JSON.parse(start + json + end);
+                postData(jobj);
+                //alert(JSON.stringify(jobj));
+            }
+        } catch (e) { alert(e); }
+        return false;
+    }
+    function postData(obj)
+    {
+        var ajax = new XMLHttpRequest();
+            ajax.onreadystatechange = function()
+            {
+                if(ajax.readyState == 4 && ajax.status == 200)
+                {
+                    alert(ajax.responseText);
+                }
+            }
+            ajax.open("post", "http://localhost/CUT/TestValidatePost.php"); 
+            ajax.setRequestHeader('Content-Type', 'application/json');
+            ajax.send(JSON.stringify(obj));
+    }
+</script>
+</head>
+<body>
+    <form action="" method="post" onsubmit="return validateForm(event);" id="frmMain" name="frmMain" novalidate>
+        <table>
+            <tr>
+                <td>FirstName</td>
+                <td><input type="text" id="userFirstName" minlength="2" /><p id="id1"></p></td>
+            </tr>
+            <tr>
+                <td>LastName</td>
+                <td><input type="text" id="userLastName" /><p id="id2"></p></td>
+            </tr>
+            <tr>
+                <td>Number</td>
+                <td><input type="text" id="anumberfield" onkeydown="keydownRealCheck(event,this);" required /></td>
+            </tr>
+            <tr>
+                <td>UserId</td>
+                <td><input type="number" id="userId" required min="1" max="10000000" step="any" /><p id="id3"></p></td>
+            </tr>
+            <tr>
+                <td>Password</td>
+                <td><input type="text" id="userPassword" /><p id="id4"></p></td>
+            </tr>
+            <tr>
+                <td>Country</td>
+                <td>
+                    <select id="selCountry" required>
+                        <option value="">Choose a country...</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="UK">United Kingdom</option>
+                        <option value="FR">France</option>
+                    </select>
+                </td>
+            </tr>        
+            <tr>
+                <td><label for="datemin">Enter a date after 2000-01-01:</label></td>
+                <td><input type="date" id="datemin" name="datemin" min="2000-01-02" /></td>
+            </tr>
+            <tr>
+                <td>Credit Card</td>
+                <td>
+			        <input type="radio" name="1" value="1" />Amex&nbsp;<input type="radio" name="1" value="2" />Visa&nbsp; <input type="radio" name="1" value="3" />MC
+                </td>
+            </tr>
+        </table>
+        <input type="submit" value="Submit" />
+    </form>
+</body>
+</html>
+<script>
+    (function () {
+        var frm = document.getElementById("frmMain");
+        var arrRadio = {};
+        for (var i = 0; i < frm.elements.length; i++) {
+            if (frm.elements[i].type == "radio") {
+                if (arrRadio[frm.elements[i].name] != null)
+                    continue;
+                arrRadio[frm.elements[i].name] = 1;
+            }
+            if (frm.elements[i].type != "submit" && frm.elements[i].type != "button") {
+                var $e = new __control(frm.elements[i]);
+                ctrls.push($e);
+            }
+        }
+    })();
+
+</script>
+
