@@ -2,11 +2,15 @@
 <html lang="en-US">
 <head>
 <style>
+    input{
+        min-width: 50px;
+    }
     .error {
         background-image: url('img/alert.gif');
         background-repeat: no-repeat;
         /*background-attachment: fixed;*/
         background-position: right;
+        display: inline-block;
     }
 </style>
 <script>
@@ -60,7 +64,8 @@
                             }
                         }
                     }
-                    alert("Please Select an option ");
+                    return false;
+                    //alert("Please Select an option ");
                 }
                 break;
             }
@@ -91,12 +96,6 @@
             return "\"" + this.$id + "\" : \"\"";
         }
 	}
-    function getJSONString() {
-        var start   = "{";
-        var end     = "}";
-        var json    = "";
-
-    }
     function keydownIntCheck(e, ctrl) 
     {
 	    if(!e)
@@ -146,8 +145,16 @@
             for (var i = 0; i < iMax; i++) {
                 var $elem = ctrls[i];
                 $elem.$element.setAttribute("class", "");
+                if ($elem.$type == "radio") {
+                    $elem.$element.parentElement.setAttribute("class", "");
+                }
                 if ($elem.validate() == false) {
-                    $elem.$element.setAttribute("class", "error");
+                    console.log($elem.$type);
+                    if ($elem.$type == "radio") {
+                        $elem.$element.parentElement.setAttribute("class", "error");
+                    } else {
+                        $elem.$element.setAttribute("class", "error");
+                    }
                     validForm = false;
                     //alert($elem.$element.value + " " + $elem.$type + " " + $elem.$required + " " + $elem.$minlength);
                 }
@@ -158,7 +165,11 @@
                 var start   = "{";
                 var end = "}";
                 var jobj = JSON.parse(start + json + end);
+                if ($btnSubmit)
+                    $btnSubmit.disabled = true;
                 postData(jobj);
+                if ($btnSubmit)
+                    $btnSubmit.disabled = false;
                 //alert(JSON.stringify(jobj));
             }
         } catch (e) { alert(e); }
@@ -222,7 +233,7 @@
             <tr>
                 <td>Credit Card</td>
                 <td>
-			        <input type="radio" name="1" value="1" />Amex&nbsp;<input type="radio" name="1" value="2" />Visa&nbsp; <input type="radio" name="1" value="3" />MC
+			        &nbsp;<input type="radio" name="1" value="1" />Amex&nbsp;<input type="radio" name="1" value="2" />Visa&nbsp; <input type="radio" name="1" value="3" />MC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 </td>
             </tr>
         </table>
@@ -231,6 +242,7 @@
 </body>
 </html>
 <script>
+    let $btnSubmit = null;
     (function () {
         var frm = document.getElementById("frmMain");
         var arrRadio = {};
@@ -240,6 +252,8 @@
                     continue;
                 arrRadio[frm.elements[i].name] = 1;
             }
+            if (frm.elements[i].type == "submit")
+                $btnSubmit = frm.elements[i];
             if (frm.elements[i].type != "submit" && frm.elements[i].type != "button") {
                 var $e = new __control(frm.elements[i]);
                 ctrls.push($e);
